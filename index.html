@@ -111,6 +111,10 @@
   .res-err { color: var(--danger); }
   .hidden { display: none; }
   input[type=checkbox] { accent-color: var(--accent-primary); width: 16px; height: 16px; }
+  .enrich-mode { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; margin: 16px 0 4px; }
+  .enrich-mode .mode-label { font-size: .8rem; font-weight: 600; color: var(--text-muted); letter-spacing: .02em; }
+  .enrich-mode label { display: inline-flex; align-items: center; gap: 6px; font-size: .92rem; color: var(--text-main); cursor: pointer; }
+  .enrich-mode input[type=radio] { accent-color: var(--accent-primary); width: 15px; height: 15px; }
 </style>
 </head>
 <body>
@@ -178,9 +182,15 @@
           <tbody id="leadRows"></tbody>
         </table>
       </div>
-      <div style="margin-top:16px; display:flex; align-items:center; gap:12px; flex-wrap:wrap">
+      <div class="enrich-mode">
+        <span class="mode-label">Anreichern:</span>
+        <label><input type="radio" name="mode" value="both" checked /> E-Mail + Telefon</label>
+        <label><input type="radio" name="mode" value="email" /> Nur E-Mail</label>
+        <label><input type="radio" name="mode" value="phone" /> Nur Telefon</label>
+      </div>
+      <div style="margin-top:12px; display:flex; align-items:center; gap:12px; flex-wrap:wrap">
         <button class="btn-go" id="enrichBtn" disabled>Anreichern + zu HubSpot</button>
-        <span class="muted">reichert E-Mail + Telefon an und legt die Kontakte in HubSpot an (max. 20 pro Durchgang)</span>
+        <span class="muted">legt die ausgewählten Kontakte in HubSpot an (max. 20 pro Durchgang)</span>
       </div>
     </div>
 
@@ -312,13 +322,15 @@ $("enrichBtn").onclick = async () => {
   if (!idx.length) return;
   if (idx.length > 20) return;
   const sel = idx.map((i) => leads[i]);
-  if (!confirm(`${sel.length} Leads anreichern und in HubSpot anlegen? Das verbraucht Credits (nur gültige Treffer).`)) return;
+  const mode = (document.querySelector('input[name=mode]:checked') || {}).value || "both";
+  const modeLabel = mode === "email" ? "nur E-Mail" : mode === "phone" ? "nur Telefon" : "E-Mail + Telefon";
+  if (!confirm(`${sel.length} Leads anreichern (${modeLabel}) und in HubSpot anlegen? Das verbraucht Credits (nur gültige Treffer).`)) return;
   $("enrichBtn").disabled = true;
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   try {
     // 1) Job starten (kurz)
     show($("enrichStatus"), "info", '<span class="spin"></span> Anreicherung wird gestartet …');
-    const started = await callApi("/api/enrich-start", { leads: sel });
+    const started = await callApi("/api/enrich-start", { leads: sel, mode });
     const requestId = started.requestId;
 
     // 2) Im Browser pollen (kurze Aufrufe → kein Server-Timeout)
