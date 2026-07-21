@@ -314,10 +314,28 @@ $("enrichBtn").onclick = async () => {
   const sel = idx.map((i) => leads[i]);
   if (!confirm(`${sel.length} Leads anreichern und in HubSpot anlegen? Das verbraucht Credits (nur gültige Treffer).`)) return;
   $("enrichBtn").disabled = true;
-  show($("enrichStatus"), "info", '<span class="spin"></span> Anreichern &amp; in HubSpot anlegen …');
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   try {
-    const data = await callApi("/api/enrich", { leads: sel });
-    renderDone(data);
+    // 1) Job starten (kurz)
+    show($("enrichStatus"), "info", '<span class="spin"></span> Anreicherung wird gestartet …');
+    const started = await callApi("/api/enrich-start", { leads: sel });
+    const requestId = started.requestId;
+
+    // 2) Im Browser pollen (kurze Aufrufe → kein Server-Timeout)
+    const STEP = 4000, MAX_WAIT = 180000;
+    let waited = 0, done = false, data = [], creditsLeft = null;
+    while (waited < MAX_WAIT) {
+      await sleep(STEP); waited += STEP;
+      show($("enrichStatus"), "info", `<span class="spin"></span> Anreichern läuft … (${Math.round(waited / 1000)}s)`);
+      const st = await callApi("/api/enrich-status", { requestId });
+      if (st.done) { done = true; data = st.data || []; creditsLeft = st.creditsLeft ?? null; break; }
+    }
+    if (!done) throw new Error("Der Anreicherungs-Job dauert ungewöhnlich lange (>3 Min). Bitte später erneut versuchen.");
+
+    // 3) In HubSpot anlegen
+    show($("enrichStatus"), "info", '<span class="spin"></span> Kontakte in HubSpot anlegen …');
+    const saved = await callApi("/api/enrich-save", { leads: sel, data, creditsLeft });
+    renderDone(saved);
     hide($("enrichStatus"));
   } catch (e) {
     show($("enrichStatus"), "err", "Fehler: " + e.message);
