@@ -1,0 +1,347 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>SOWA Lead-Tool</title>
+<link rel="icon" type="image/png" href="favicon.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    /* Website-Design (dunkel) */
+    --bg-main: #0a0a0c; --bg-alt: #111116;
+    --text-main: #e2e8f0; --text-muted: #94a3b8;
+    --accent-primary: #4a5a9c; --accent-secondary: #6e7ebd;
+    --accent-gradient: linear-gradient(135deg, #4a5a9c, #6e7ebd);
+    --success: #10b981; --success-grad: linear-gradient(135deg, #10b981, #34d399);
+    --warning: #f59e0b; --danger: #ef4444;
+    --glass-bg: rgba(255, 255, 255, 0.03);
+    --glass-bg-2: rgba(255, 255, 255, 0.05);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+    --font-heading: 'Outfit', sans-serif;
+    --font-body: 'Inter', sans-serif;
+    --radius: 16px; --radius-sm: 8px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: var(--font-body);
+    background:
+      radial-gradient(1200px 600px at 80% -10%, rgba(74, 90, 156, 0.18), transparent 60%),
+      radial-gradient(900px 500px at 0% 0%, rgba(110, 126, 189, 0.10), transparent 55%),
+      var(--bg-main);
+    background-attachment: fixed;
+    color: var(--text-main); line-height: 1.6; min-height: 100vh;
+  }
+  h1, h2, h3 { font-family: var(--font-heading); line-height: 1.2; }
+  .glass {
+    background: var(--glass-bg);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow);
+    border-radius: var(--radius);
+  }
+  .gradient-text {
+    background: var(--accent-gradient);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+
+  /* Navbar (Pill, wie auf der Website) */
+  .navbar {
+    position: fixed; top: 1rem; left: 50%; transform: translateX(-50%);
+    width: calc(100% - 2rem); max-width: 980px;
+    border-radius: 100px; padding: 0.7rem 1.4rem; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .logo { display: flex; align-items: center; gap: 0.7rem; }
+  .logo img { height: 30px; width: auto; filter: drop-shadow(0 0 12px rgba(74, 90, 156, 0.55)); }
+  .logo .brand { font-family: var(--font-heading); font-weight: 700; font-size: 1.2rem; color: #fff; letter-spacing: .01em; }
+  .nav-tag { font-family: var(--font-heading); font-size: .72rem; font-weight: 600; letter-spacing: .16em; text-transform: uppercase;
+    color: var(--accent-secondary); border: 1px solid var(--glass-border); padding: .3rem .7rem; border-radius: 100px; }
+
+  main { max-width: 980px; margin: 0 auto; padding: 92px 20px 48px; }
+  .card { padding: 22px 24px; margin-bottom: 20px; }
+  h2 { font-size: 1.05rem; margin: 0 0 16px; color: #fff; font-weight: 600; }
+  h2 .sub { color: var(--text-muted); font-weight: 400; font-size: .9rem; }
+  label { display: block; font-size: .8rem; font-weight: 600; color: var(--text-muted); margin: 0 0 6px; letter-spacing: .02em; }
+
+  select, input[type=number], input[type=password] {
+    width: 100%; padding: 11px 13px; border-radius: var(--radius-sm);
+    border: 1px solid var(--glass-border); background: var(--glass-bg-2);
+    color: var(--text-main); font-family: var(--font-body); font-size: 1rem; outline: none;
+    transition: border-color .2s ease, box-shadow .2s ease;
+  }
+  select:focus, input:focus { border-color: var(--accent-secondary); box-shadow: 0 0 0 3px rgba(74, 90, 156, 0.25); }
+  select option { background: var(--bg-alt); color: var(--text-main); }
+
+  .row { display: flex; gap: 14px; flex-wrap: wrap; align-items: flex-end; }
+  .row > div { flex: 1; min-width: 160px; }
+
+  button { font: inherit; font-weight: 600; border: none; border-radius: var(--radius-sm); padding: 11px 20px; cursor: pointer;
+    transition: box-shadow .3s ease, transform .3s ease, background .3s ease; color: #fff; }
+  button:disabled { opacity: .45; cursor: not-allowed; box-shadow: none; transform: none; }
+  .btn-primary { background: var(--accent-gradient); box-shadow: 0 4px 15px rgba(74, 90, 156, 0.4); }
+  .btn-primary:hover:not(:disabled) { box-shadow: 0 6px 22px rgba(110, 126, 189, 0.6); transform: translateY(-2px); }
+  .btn-go { background: var(--success-grad); box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4); }
+  .btn-go:hover:not(:disabled) { box-shadow: 0 6px 22px rgba(16, 185, 129, 0.55); transform: translateY(-2px); }
+
+  table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--glass-border); vertical-align: top; }
+  th { color: var(--text-muted); font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; font-weight: 600; }
+  tbody tr:hover { background: rgba(255, 255, 255, 0.02); }
+  td a { color: var(--accent-secondary); text-decoration: none; }
+  td a:hover { text-decoration: underline; }
+
+  .muted { color: var(--text-muted); font-size: .85rem; }
+  .hint { font-size: .8rem; color: var(--text-muted); margin-top: 10px; }
+  .status { padding: 11px 15px; border-radius: var(--radius-sm); margin: 14px 0; font-size: .9rem; display: none; border: 1px solid transparent; }
+  .status.show { display: block; }
+  .status.info { background: rgba(74, 90, 156, 0.16); border-color: rgba(74, 90, 156, 0.4); color: #c8d0f2; }
+  .status.ok { background: rgba(16, 185, 129, 0.14); border-color: rgba(16, 185, 129, 0.4); color: #86efc3; }
+  .status.err { background: rgba(239, 68, 68, 0.14); border-color: rgba(239, 68, 68, 0.4); color: #fca5a5; }
+  .spin { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--accent-secondary); border-top-color: transparent; border-radius: 50%; animation: s .8s linear infinite; vertical-align: -2px; margin-right: 7px; }
+  @keyframes s { to { transform: rotate(360deg); } }
+  .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 12px; flex-wrap: wrap; }
+  .pill { font-family: var(--font-heading); font-size: .74rem; font-weight: 600; background: var(--glass-bg-2); color: var(--accent-secondary);
+    padding: 4px 12px; border-radius: 100px; border: 1px solid var(--glass-border); }
+  .res-ok { color: var(--success); font-weight: 600; }
+  .res-no { color: var(--text-muted); }
+  .res-err { color: var(--danger); }
+  .hidden { display: none; }
+  input[type=checkbox] { accent-color: var(--accent-primary); width: 16px; height: 16px; }
+</style>
+</head>
+<body>
+
+<nav class="navbar glass">
+  <a class="logo" href="./" style="text-decoration:none">
+    <img src="logo.png" alt="SOWA Privacy" />
+    <span class="brand" translate="no">SOWA Privacy</span>
+  </a>
+  <span class="nav-tag">Lead-Tool · intern</span>
+</nav>
+
+<main>
+
+  <!-- Login -->
+  <div class="card glass" id="loginCard">
+    <h2>Anmelden</h2>
+    <div class="row">
+      <div>
+        <label for="pw">Zugangspasswort</label>
+        <input type="password" id="pw" autocomplete="current-password" placeholder="••••••••" />
+      </div>
+      <div style="flex:0 0 auto">
+        <button class="btn-primary" id="loginBtn">Anmelden</button>
+      </div>
+    </div>
+    <div class="hint">Das Passwort bekommst du von der IT/Founder. Es bleibt nur in diesem Browser gespeichert.</div>
+  </div>
+
+  <!-- App -->
+  <div id="app" class="hidden">
+    <div class="card glass">
+      <h2>1 · Leads finden <span class="sub">(kostenlos)</span></h2>
+      <div class="row">
+        <div>
+          <label for="preset">Zielgruppe</label>
+          <select id="preset"></select>
+        </div>
+        <div style="flex:0 0 130px">
+          <label for="max">Max. Anzahl</label>
+          <input type="number" id="max" value="25" min="1" max="50" />
+        </div>
+        <div style="flex:0 0 auto">
+          <button class="btn-primary" id="findBtn">Finden</button>
+        </div>
+      </div>
+      <div class="hint">Das Suchen kostet nichts. Erst das Anreichern in Schritt 2 verbraucht Credits.</div>
+    </div>
+
+    <div id="findStatus" class="status"></div>
+
+    <div class="card glass hidden" id="resultsCard">
+      <div class="toolbar">
+        <h2 style="margin:0">2 · Auswählen &amp; anreichern</h2>
+        <span class="pill" id="selCount">0 ausgewählt</span>
+      </div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:34px"><input type="checkbox" id="selAll" title="Alle" /></th>
+              <th>Name</th><th>Firma</th><th>Position</th><th>Land</th><th>LinkedIn</th>
+            </tr>
+          </thead>
+          <tbody id="leadRows"></tbody>
+        </table>
+      </div>
+      <div style="margin-top:16px; display:flex; align-items:center; gap:12px; flex-wrap:wrap">
+        <button class="btn-go" id="enrichBtn" disabled>Anreichern + zu HubSpot</button>
+        <span class="muted">reichert E-Mail + Telefon an und legt die Kontakte in HubSpot an (max. 20 pro Durchgang)</span>
+      </div>
+    </div>
+
+    <div id="enrichStatus" class="status"></div>
+
+    <div class="card glass hidden" id="doneCard">
+      <div class="toolbar">
+        <h2 style="margin:0">3 · Ergebnis</h2>
+        <span class="pill" id="creditsPill"></span>
+      </div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr><th>Name</th><th>Firma</th><th>E-Mail</th><th>Telefon</th><th>HubSpot</th></tr></thead>
+          <tbody id="doneRows"></tbody>
+        </table>
+      </div>
+      <div class="hint">Kontakte sind jetzt in HubSpot. Ansprechen nach der grün/rot-Richtlinie — Finden/Anreichern ist keine Kontakt-Erlaubnis.</div>
+    </div>
+  </div>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let leads = [];
+let pw = sessionStorage.getItem("sowaPw") || "";
+
+function show(el, cls, html) { el.className = "status show " + cls; el.innerHTML = html; }
+function hide(el) { el.className = "status"; }
+
+async function callApi(path, payload) {
+  const res = await fetch(path, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-app-password": pw },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json().catch(() => ({ ok: false, error: "Ungültige Antwort." }));
+  if (res.status === 401) { logout(); throw new Error("Passwort abgelehnt — bitte neu anmelden."); }
+  if (!data.ok) throw new Error(data.error || ("Fehler " + res.status));
+  return data;
+}
+
+function enterApp() {
+  $("loginCard").classList.add("hidden");
+  $("app").classList.remove("hidden");
+  loadPresets();
+}
+function logout() {
+  pw = ""; sessionStorage.removeItem("sowaPw");
+  $("app").classList.add("hidden");
+  $("loginCard").classList.remove("hidden");
+}
+$("loginBtn").onclick = () => {
+  const v = $("pw").value.trim();
+  if (!v) return;
+  pw = v; sessionStorage.setItem("sowaPw", v);
+  enterApp();
+};
+$("pw").addEventListener("keydown", (e) => { if (e.key === "Enter") $("loginBtn").click(); });
+
+const PRESET_LABELS = {
+  "dach-security": "DACH · Datenschutz & IT-Security-Entscheider",
+  "dach-legal": "DACH · Recht & Compliance",
+  "dach-finance": "DACH · Finance & Risk",
+};
+function loadPresets() {
+  const sel = $("preset");
+  sel.innerHTML = "";
+  for (const [k, label] of Object.entries(PRESET_LABELS)) {
+    const o = document.createElement("option");
+    o.value = k; o.textContent = label; sel.appendChild(o);
+  }
+}
+
+$("findBtn").onclick = async () => {
+  const preset = $("preset").value;
+  const max = Math.min(Math.max(parseInt($("max").value) || 25, 1), 50);
+  $("findBtn").disabled = true;
+  $("resultsCard").classList.add("hidden");
+  $("doneCard").classList.add("hidden");
+  hide($("enrichStatus"));
+  show($("findStatus"), "info", '<span class="spin"></span> Suche läuft … (kann bis zu einer Minute dauern)');
+  try {
+    const data = await callApi("/api/find", { preset, max });
+    leads = data.leads || [];
+    renderLeads();
+    if (!leads.length) show($("findStatus"), "info", "Keine Leads gefunden. Anderes Preset oder größere Max-Anzahl probieren.");
+    else show($("findStatus"), "ok", `${leads.length} Leads gefunden. Unten auswählen und anreichern.`);
+  } catch (e) {
+    show($("findStatus"), "err", "Fehler: " + e.message);
+  } finally {
+    $("findBtn").disabled = false;
+  }
+};
+
+function renderLeads() {
+  const tb = $("leadRows"); tb.innerHTML = "";
+  leads.forEach((l, i) => {
+    const tr = document.createElement("tr");
+    const link = l.linkedinUrl ? `<a href="${l.linkedinUrl}" target="_blank" rel="noopener">Profil ↗</a>` : "—";
+    tr.innerHTML =
+      `<td><input type="checkbox" class="sel" data-i="${i}" /></td>` +
+      `<td>${esc(l.firstName)} ${esc(l.lastName)}</td>` +
+      `<td>${esc(l.company)}</td><td>${esc(l.jobTitle)}</td><td>${esc(l.country)}</td><td>${link}</td>`;
+    tb.appendChild(tr);
+  });
+  $("resultsCard").classList.remove("hidden");
+  $("selAll").checked = false;
+  document.querySelectorAll(".sel").forEach((c) => c.addEventListener("change", updateSel));
+  updateSel();
+}
+$("selAll").onchange = (e) => {
+  document.querySelectorAll(".sel").forEach((c) => (c.checked = e.target.checked));
+  updateSel();
+};
+function selectedIndexes() {
+  return [...document.querySelectorAll(".sel:checked")].map((c) => +c.dataset.i);
+}
+function updateSel() {
+  const n = selectedIndexes().length;
+  $("selCount").textContent = n + " ausgewählt";
+  $("enrichBtn").disabled = n === 0 || n > 20;
+  $("enrichBtn").textContent = n > 20 ? `Zu viele (max. 20) — ${n} ausgewählt` : `Anreichern + zu HubSpot (${n})`;
+}
+
+$("enrichBtn").onclick = async () => {
+  const idx = selectedIndexes();
+  if (!idx.length) return;
+  if (idx.length > 20) return;
+  const sel = idx.map((i) => leads[i]);
+  if (!confirm(`${sel.length} Leads anreichern und in HubSpot anlegen? Das verbraucht Credits (nur gültige Treffer).`)) return;
+  $("enrichBtn").disabled = true;
+  show($("enrichStatus"), "info", '<span class="spin"></span> Anreichern &amp; in HubSpot anlegen …');
+  try {
+    const data = await callApi("/api/enrich", { leads: sel });
+    renderDone(data);
+    hide($("enrichStatus"));
+  } catch (e) {
+    show($("enrichStatus"), "err", "Fehler: " + e.message);
+  } finally {
+    $("enrichBtn").disabled = false;
+  }
+};
+
+function renderDone(data) {
+  const tb = $("doneRows"); tb.innerHTML = "";
+  (data.results || []).forEach((r) => {
+    const tr = document.createElement("tr");
+    const email = r.email ? `${esc(r.email)} <span class="muted">(${esc(r.emailStatus || "")})</span>` : '<span class="res-no">— keine</span>';
+    const phone = r.phone ? esc(r.phone) : '<span class="res-no">— keine</span>';
+    const hs = r.hubspotId ? '<span class="res-ok">✓ angelegt</span>' : `<span class="res-err">✗ ${esc(r.error || "Fehler")}</span>`;
+    tr.innerHTML = `<td>${esc(r.name)}</td><td>${esc(r.company)}</td><td>${email}</td><td>${phone}</td><td>${hs}</td>`;
+    tb.appendChild(tr);
+  });
+  $("creditsPill").textContent = data.creditsLeft != null ? `Guthaben übrig: ${data.creditsLeft}` : "";
+  $("doneCard").classList.remove("hidden");
+  $("doneCard").scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+
+if (pw) enterApp();
+</script>
+</body>
+</html>
