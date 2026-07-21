@@ -7,15 +7,15 @@ import { upsertContact } from "../lib/hubspot.js";
 const MAX_SELECT = 20; // pro Durchgang — begrenzt Kosten und Laufzeit
 
 export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    res.status(405).json({ ok: false, error: "method not allowed" });
-    return;
-  }
-  if (!checkPassword(req)) {
-    res.status(401).json({ ok: false, error: "Falsches oder fehlendes Passwort." });
-    return;
-  }
   try {
+    if (req.method !== "POST") {
+      res.status(405).json({ ok: false, error: "method not allowed" });
+      return;
+    }
+    if (!checkPassword(req)) {
+      res.status(401).json({ ok: false, error: "Falsches oder fehlendes Passwort." });
+      return;
+    }
     const body = req.body && typeof req.body === "object" ? req.body : {};
     const leads = Array.isArray(body.leads) ? body.leads : [];
     if (!leads.length) {

@@ -216,7 +216,9 @@ async function callApi(path, payload) {
     headers: { "Content-Type": "application/json", "x-app-password": pw },
     body: JSON.stringify(payload),
   });
-  const data = await res.json().catch(() => ({ ok: false, error: "Ungültige Antwort." }));
+  let data;
+  try { data = await res.json(); }
+  catch { throw new Error(`Server-Fehler (HTTP ${res.status}). Meist fehlt eine Environment Variable in Vercel — nach dem Setzen neu deployen.`); }
   if (res.status === 401) { logout(); throw new Error("Passwort abgelehnt — bitte neu anmelden."); }
   if (!data.ok) throw new Error(data.error || ("Fehler " + res.status));
   return data;
