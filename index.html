@@ -186,7 +186,6 @@
         <span class="mode-label">Anreichern:</span>
         <label><input type="radio" name="mode" value="both" checked /> E-Mail + Telefon</label>
         <label><input type="radio" name="mode" value="email" /> Nur E-Mail</label>
-        <label><input type="radio" name="mode" value="phone" /> Nur Telefon</label>
       </div>
       <div style="margin-top:12px; display:flex; align-items:center; gap:12px; flex-wrap:wrap">
         <button class="btn-go" id="enrichBtn" disabled>Anreichern + zu HubSpot</button>
@@ -323,7 +322,7 @@ $("enrichBtn").onclick = async () => {
   if (idx.length > 20) return;
   const sel = idx.map((i) => leads[i]);
   const mode = (document.querySelector('input[name=mode]:checked') || {}).value || "both";
-  const modeLabel = mode === "email" ? "nur E-Mail" : mode === "phone" ? "nur Telefon" : "E-Mail + Telefon";
+  const modeLabel = mode === "email" ? "nur E-Mail" : "E-Mail + Telefon";
   if (!confirm(`${sel.length} Leads anreichern (${modeLabel}) und in HubSpot anlegen? Das verbraucht Credits (nur gültige Treffer).`)) return;
   $("enrichBtn").disabled = true;
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
