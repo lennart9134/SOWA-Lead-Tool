@@ -161,7 +161,12 @@
           <button class="btn-primary" id="findBtn">Finden</button>
         </div>
       </div>
-      <div class="hint">Das Suchen kostet nichts. Erst das Anreichern in Schritt 2 verbraucht Credits.</div>
+      <div class="hint">
+        Das Suchen kostet nichts. Erst das Anreichern in Schritt 2 verbraucht Credits.
+        Jeder Klick auf „Finden" zeigt neue Leads für diese Zielgruppe — bereits in HubSpot
+        vorhandene Kontakte werden automatisch übersprungen.
+        <a href="#" id="resetOffsetBtn" style="color:var(--accent-secondary)">Von vorne suchen</a>
+      </div>
     </div>
 
     <div id="findStatus" class="status"></div>
@@ -265,20 +270,49 @@ function loadPresets() {
   }
 }
 
+// Offset je Preset im Browser merken, damit wiederholtes "Finden" nicht
+// immer dieselbe erste Seite liefert. Zusätzlich filtert der Server bereits
+// in HubSpot vorhandene Kontakte heraus (siehe api/find.js) — das wirkt auch
+// über mehrere Reps/Sessions hinweg, das Offset nur innerhalb dieses Browsers.
+const OFFSETS_KEY = "sowaLeadOffsets";
+function getOffsets() { try { return JSON.parse(localStorage.getItem(OFFSETS_KEY)) || {}; } catch { return {}; } }
+function getOffset(preset) { return getOffsets()[preset] || 0; }
+function setOffset(preset, value) {
+  const o = getOffsets(); o[preset] = value;
+  localStorage.setItem(OFFSETS_KEY, JSON.stringify(o));
+}
+function resetOffset(preset) {
+  const o = getOffsets(); delete o[preset];
+  localStorage.setItem(OFFSETS_KEY, JSON.stringify(o));
+}
+
+$("resetOffsetBtn").onclick = (e) => {
+  e.preventDefault();
+  resetOffset($("preset").value);
+  show($("findStatus"), "ok", 'Zurückgesetzt — der nächste Klick auf „Finden" beginnt wieder von vorne.');
+};
+
 $("findBtn").onclick = async () => {
   const preset = $("preset").value;
   const max = Math.min(Math.max(parseInt($("max").value) || 25, 1), 50);
+  const offset = getOffset(preset);
   $("findBtn").disabled = true;
   $("resultsCard").classList.add("hidden");
   $("doneCard").classList.add("hidden");
   hide($("enrichStatus"));
   show($("findStatus"), "info", '<span class="spin"></span> Suche läuft … (kann bis zu einer Minute dauern)');
   try {
-    const data = await callApi("/api/find", { preset, max });
+    const data = await callApi("/api/find", { preset, max, offset });
     leads = data.leads || [];
+    if (typeof data.nextOffset === "number") setOffset(preset, data.nextOffset);
     renderLeads();
-    if (!leads.length) show($("findStatus"), "info", "Keine Leads gefunden. Anderes Preset oder größere Max-Anzahl probieren.");
-    else show($("findStatus"), "ok", `${leads.length} Leads gefunden. Unten auswählen und anreichern.`);
+    if (!leads.length) {
+      show($("findStatus"), "info", data.exhausted
+        ? 'Keine weiteren neuen Leads für diese Zielgruppe (alle bereits in HubSpot oder Filter ausgeschöpft). „Von vorne suchen" probiert es erneut.'
+        : "Keine Leads gefunden. Anderes Preset oder größere Max-Anzahl probieren.");
+    } else {
+      show($("findStatus"), "ok", `${leads.length} neue Leads gefunden. Unten auswählen und anreichern.`);
+    }
   } catch (e) {
     show($("findStatus"), "err", "Fehler: " + e.message);
   } finally {
