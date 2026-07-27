@@ -163,7 +163,7 @@
       </div>
       <div class="hint">
         Das Suchen kostet nichts. Erst das Anreichern in Schritt 2 verbraucht Credits.
-        Jeder Klick auf „Finden" zeigt neue Leads für diese Zielgruppe — bereits in HubSpot
+        Jeder Klick auf „Finden" zeigt neue Leads für diese Zielgruppe — bereits im CRM
         vorhandene Kontakte werden automatisch übersprungen.
         <a href="#" id="resetOffsetBtn" style="color:var(--accent-secondary)">Von vorne suchen</a>
       </div>
@@ -193,8 +193,8 @@
         <label><input type="radio" name="mode" value="email" /> Nur E-Mail</label>
       </div>
       <div style="margin-top:12px; display:flex; align-items:center; gap:12px; flex-wrap:wrap">
-        <button class="btn-go" id="enrichBtn" disabled>Anreichern + zu HubSpot</button>
-        <span class="muted">legt die ausgewählten Kontakte in HubSpot an (max. 20 pro Durchgang)</span>
+        <button class="btn-go" id="enrichBtn" disabled>Anreichern + ins CRM</button>
+        <span class="muted">legt die ausgewählten Kontakte im CRM an (max. 20 pro Durchgang)</span>
       </div>
     </div>
 
@@ -207,11 +207,11 @@
       </div>
       <div style="overflow-x:auto">
         <table>
-          <thead><tr><th>Name</th><th>Firma</th><th>E-Mail</th><th>Telefon</th><th>HubSpot</th></tr></thead>
+          <thead><tr><th>Name</th><th>Firma</th><th>E-Mail</th><th>Telefon</th><th>CRM</th></tr></thead>
           <tbody id="doneRows"></tbody>
         </table>
       </div>
-      <div class="hint">Kontakte sind jetzt in HubSpot. Ansprechen nach der grün/rot-Richtlinie — Finden/Anreichern ist keine Kontakt-Erlaubnis.</div>
+      <div class="hint">Kontakte sind jetzt im CRM. Ansprechen nach der grün/rot-Richtlinie — Finden/Anreichern ist keine Kontakt-Erlaubnis.</div>
     </div>
   </div>
 </main>
@@ -272,7 +272,7 @@ function loadPresets() {
 
 // Offset je Preset im Browser merken, damit wiederholtes "Finden" nicht
 // immer dieselbe erste Seite liefert. Zusätzlich filtert der Server bereits
-// in HubSpot vorhandene Kontakte heraus (siehe api/find.js) — das wirkt auch
+// im CRM vorhandene Kontakte heraus (siehe api/find.js) — das wirkt auch
 // über mehrere Reps/Sessions hinweg, das Offset nur innerhalb dieses Browsers.
 const OFFSETS_KEY = "sowaLeadOffsets";
 function getOffsets() { try { return JSON.parse(localStorage.getItem(OFFSETS_KEY)) || {}; } catch { return {}; } }
@@ -308,7 +308,7 @@ $("findBtn").onclick = async () => {
     renderLeads();
     if (!leads.length) {
       show($("findStatus"), "info", data.exhausted
-        ? 'Keine weiteren neuen Leads für diese Zielgruppe (alle bereits in HubSpot oder Filter ausgeschöpft). „Von vorne suchen" probiert es erneut.'
+        ? 'Keine weiteren neuen Leads für diese Zielgruppe (alle bereits im CRM oder Filter ausgeschöpft). „Von vorne suchen" probiert es erneut.'
         : "Keine Leads gefunden. Anderes Preset oder größere Max-Anzahl probieren.");
     } else {
       show($("findStatus"), "ok", `${leads.length} neue Leads gefunden. Unten auswählen und anreichern.`);
@@ -347,7 +347,7 @@ function updateSel() {
   const n = selectedIndexes().length;
   $("selCount").textContent = n + " ausgewählt";
   $("enrichBtn").disabled = n === 0 || n > 20;
-  $("enrichBtn").textContent = n > 20 ? `Zu viele (max. 20) — ${n} ausgewählt` : `Anreichern + zu HubSpot (${n})`;
+  $("enrichBtn").textContent = n > 20 ? `Zu viele (max. 20) — ${n} ausgewählt` : `Anreichern + ins CRM (${n})`;
 }
 
 $("enrichBtn").onclick = async () => {
@@ -357,7 +357,7 @@ $("enrichBtn").onclick = async () => {
   const sel = idx.map((i) => leads[i]);
   const mode = (document.querySelector('input[name=mode]:checked') || {}).value || "both";
   const modeLabel = mode === "email" ? "nur E-Mail" : "E-Mail + Telefon";
-  if (!confirm(`${sel.length} Leads anreichern (${modeLabel}) und in HubSpot anlegen? Das verbraucht Credits (nur gültige Treffer).`)) return;
+  if (!confirm(`${sel.length} Leads anreichern (${modeLabel}) und im CRM anlegen? Das verbraucht Credits (nur gültige Treffer).`)) return;
   $("enrichBtn").disabled = true;
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   try {
@@ -377,8 +377,8 @@ $("enrichBtn").onclick = async () => {
     }
     if (!done) throw new Error("Der Anreicherungs-Job dauert ungewöhnlich lange (>3 Min). Bitte später erneut versuchen.");
 
-    // 3) In HubSpot anlegen
-    show($("enrichStatus"), "info", '<span class="spin"></span> Kontakte in HubSpot anlegen …');
+    // 3) Im CRM anlegen
+    show($("enrichStatus"), "info", '<span class="spin"></span> Kontakte im CRM anlegen …');
     const saved = await callApi("/api/enrich-save", { leads: sel, data, creditsLeft });
     renderDone(saved);
     hide($("enrichStatus"));
@@ -395,7 +395,7 @@ function renderDone(data) {
     const tr = document.createElement("tr");
     const email = r.email ? `${esc(r.email)} <span class="muted">(${esc(r.emailStatus || "")})</span>` : '<span class="res-no">— keine</span>';
     const phone = r.phone ? esc(r.phone) : '<span class="res-no">— keine</span>';
-    const hs = r.hubspotId ? '<span class="res-ok">✓ angelegt</span>' : `<span class="res-err">✗ ${esc(r.error || "Fehler")}</span>`;
+    const hs = r.crmId ? '<span class="res-ok">✓ angelegt</span>' : `<span class="res-err">✗ ${esc(r.error || "Fehler")}</span>`;
     tr.innerHTML = `<td>${esc(r.name)}</td><td>${esc(r.company)}</td><td>${email}</td><td>${phone}</td><td>${hs}</td>`;
     tb.appendChild(tr);
   });

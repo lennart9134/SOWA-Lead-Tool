@@ -1,8 +1,9 @@
 // POST /api/enrich-save — führt Leads + Enrichment-Ergebnisse zusammen und legt
-// sie in HubSpot an. Body: { leads, data, creditsLeft }.
+// sie im konfigurierten CRM an (siehe lib/crm.js, CRM_PROVIDER). Body:
+// { leads, data, creditsLeft }.
 import { checkPassword } from "../lib/auth.js";
 import { mergeEnriched } from "../lib/betterContact.js";
-import { upsertContact } from "../lib/hubspot.js";
+import { upsertContact } from "../lib/crm.js";
 
 export default async function handler(req, res) {
   try {
@@ -22,21 +23,17 @@ export default async function handler(req, res) {
     }
 
     const contacts = mergeEnriched(leads, data);
-    const token = process.env.HUBSPOT_TOKEN;
     const results = await Promise.all(
       contacts.map(async (c) => {
         const name = `${c.firstName} ${c.lastName}`.trim();
         try {
-          const hs = await upsertContact(
-            {
-              email: c.email, firstName: c.firstName, lastName: c.lastName,
-              company: c.company, phone: c.phone, jobTitle: c.jobTitle, linkedinUrl: c.linkedinUrl,
-            },
-            { token }
-          );
-          return { name, company: c.company, email: c.email, emailStatus: c.emailStatus, phone: c.phone, hubspotId: hs.id, error: null };
+          const saved = await upsertContact({
+            email: c.email, firstName: c.firstName, lastName: c.lastName,
+            company: c.company, phone: c.phone, jobTitle: c.jobTitle, linkedinUrl: c.linkedinUrl,
+          });
+          return { name, company: c.company, email: c.email, emailStatus: c.emailStatus, phone: c.phone, crmId: saved.id, error: null };
         } catch (e) {
-          return { name, company: c.company, email: c.email, emailStatus: c.emailStatus, phone: c.phone, hubspotId: null, error: e?.message || "HubSpot-Fehler" };
+          return { name, company: c.company, email: c.email, emailStatus: c.emailStatus, phone: c.phone, crmId: null, error: e?.message || "CRM-Fehler" };
         }
       })
     );
