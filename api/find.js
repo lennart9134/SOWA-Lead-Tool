@@ -12,6 +12,60 @@ import { findExistingLinkedinUrls } from "../lib/crm.js";
 
 const MAX_PAGES = 4; // Sicherheitsgrenze gegen zu viele Nachlade-Runden
 const PAGE_TIMEOUT_MS = 12_000; // pro BetterContact-Seite, damit MAX_PAGES sicher unter dem Vercel-Timeout bleibt
+const MAX_PER_COMPANY = 3; // gegen Listen, die von einer einzigen Firma dominiert werden
+
+function normalizeWords(s) {
+  return (s || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9äöüß]+/g, " ")
+    .split(" ")
+    .filter(Boolean);
+}
+
+// Wie gut passt der Jobtitel eines Leads zu den im Preset gesuchten Titeln?
+// Wortüberdeckung (wie viele Wörter des Wunschtitels im echten Titel stecken)
+// zählt am meisten, ein früher Preset-Eintrag bricht Gleichstände.
+function jobTitleScore(jobTitle, wantedTitles) {
+  const titleWords = new Set(normalizeWords(jobTitle));
+  let best = 0;
+  (wantedTitles || []).forEach((wanted, i) => {
+    const wantedWords = normalizeWords(wanted);
+    if (!wantedWords.length) return;
+    const hits = wantedWords.filter((w) => titleWords.has(w)).length;
+    const coverage = hits / wantedWords.length;
+    if (coverage === 0) return;
+    const priority = wantedTitles.length - i;
+    best = Math.max(best, coverage * 1000 + priority);
+  });
+  return best;
+}
+
+function companyKey(lead) {
+  const name = (lead.company || "").trim().toLowerCase();
+  if (name) return `n:${name}`;
+  const domain = (lead.companyDomain || "").trim().toLowerCase();
+  if (domain) return `d:${domain}`;
+  return `u:${(lead.linkedinUrl || `${lead.firstName}-${lead.lastName}`).toLowerCase()}`;
+}
+
+// Max. `maxPerCompany` Leads je Firma, Rest wird verworfen — pro Firma bleiben
+// die mit dem am besten passenden Jobtitel übrig.
+function capPerCompany(leads, maxPerCompany, wantedTitles) {
+  const groups = new Map();
+  for (const lead of leads) {
+    const key = companyKey(lead);
+    const scored = { lead, score: jobTitleScore(lead.jobTitle, wantedTitles) };
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(scored);
+  }
+  const kept = [];
+  for (const group of groups.values()) {
+    group.sort((a, b) => b.score - a.score);
+    kept.push(...group.slice(0, maxPerCompany));
+  }
+  kept.sort((a, b) => b.score - a.score);
+  return kept.map((item) => item.lead);
+}
 
 export default async function handler(req, res) {
   try {
@@ -31,19 +85,24 @@ export default async function handler(req, res) {
     }
     const limit = Math.min(Math.max(Number(body.max) || 25, 1), 50);
     const filters = toFilters(spec.filters);
+    const wantedTitles = spec.filters.job_titles || [];
 
-    const collected = [];
+    const pool = []; // ungekappt — Firmen-Kappung läuft erst am Ende über den ganzen Pool
     const seenKey = new Set();
     let offset = Math.max(Number(body.offset) || 0, 0);
     let pages = 0;
     let exhausted = false;
+    let collected = [];
 
-    while (collected.length < limit && pages < MAX_PAGES) {
+    while (pages < MAX_PAGES) {
+      collected = capPerCompany(pool, MAX_PER_COMPANY, wantedTitles);
+      if (collected.length >= limit) break; // genug passende Leads nach Firmen-Kappung
+
       let page;
       try {
         page = await leadFinderSearch(filters, { limit, offset, timeoutMs: PAGE_TIMEOUT_MS });
       } catch (err) {
-        if (collected.length > 0) break; // haben schon etwas — lieber Teilergebnis als Fehler
+        if (pool.length > 0) break; // haben schon etwas — lieber Teilergebnis als Fehler
         throw err;
       }
       pages++;
@@ -65,8 +124,7 @@ export default async function handler(req, res) {
         if (seenKey.has(key)) continue;
         if (lead.linkedinUrl && existing.has(lead.linkedinUrl.toLowerCase())) continue; // schon im CRM
         seenKey.add(key);
-        collected.push(lead);
-        if (collected.length >= limit) break;
+        pool.push(lead);
       }
 
       if (page.length < limit) {
@@ -74,6 +132,8 @@ export default async function handler(req, res) {
         break;
       }
     }
+
+    collected = capPerCompany(pool, MAX_PER_COMPANY, wantedTitles).slice(0, limit);
 
     res.status(200).json({
       ok: true,
