@@ -367,7 +367,7 @@ $("enrichBtn").onclick = async () => {
     const requestId = started.requestId;
 
     // 2) Im Browser pollen (kurze Aufrufe → kein Server-Timeout)
-    const STEP = 4000, MAX_WAIT = 180000;
+    const STEP = 4000, MAX_WAIT = 480000;
     let waited = 0, done = false, data = [], creditsLeft = null;
     while (waited < MAX_WAIT) {
       await sleep(STEP); waited += STEP;
@@ -375,7 +375,7 @@ $("enrichBtn").onclick = async () => {
       const st = await callApi("/api/enrich-status", { requestId });
       if (st.done) { done = true; data = st.data || []; creditsLeft = st.creditsLeft ?? null; break; }
     }
-    if (!done) throw new Error("Der Anreicherungs-Job dauert ungewöhnlich lange (>3 Min). Bitte später erneut versuchen.");
+    if (!done) throw new Error("Der Anreicherungs-Job dauert ungewöhnlich lange (>8 Min). Bitte später erneut versuchen.");
 
     // 3) Im CRM anlegen
     show($("enrichStatus"), "info", '<span class="spin"></span> Kontakte im CRM anlegen …');
