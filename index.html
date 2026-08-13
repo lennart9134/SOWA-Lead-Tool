@@ -314,7 +314,7 @@ $("findBtn").onclick = async () => {
       show($("findStatus"), "ok", `${leads.length} neue Leads gefunden. Unten auswählen und anreichern.`);
     }
   } catch (e) {
-    show($("findStatus"), "err", "Fehler: " + e.message);
+    show($("findStatus"), "err", "Fehler: " + esc(e.message));
   } finally {
     $("findBtn").disabled = false;
   }
@@ -383,7 +383,7 @@ $("enrichBtn").onclick = async () => {
     renderDone(saved);
     hide($("enrichStatus"));
   } catch (e) {
-    show($("enrichStatus"), "err", "Fehler: " + e.message);
+    show($("enrichStatus"), "err", "Fehler: " + esc(e.message));
   } finally {
     $("enrichBtn").disabled = false;
   }
