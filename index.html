@@ -303,7 +303,7 @@ $("findBtn").onclick = async () => {
   show($("findStatus"), "info", '<span class="spin"></span> Suche läuft … (kann bis zu einer Minute dauern)');
   try {
     const data = await callApi("/api/find", { preset, max, offset });
-    leads = data.leads || [];
+    leads = (data.leads || []).sort((a, b) => (a.company || "").localeCompare(b.company || "", "de"));
     if (typeof data.nextOffset === "number") setOffset(preset, data.nextOffset);
     renderLeads();
     if (!leads.length) {
